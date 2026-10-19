@@ -10,7 +10,7 @@ enum cmd {
     ADD,
     SUB,
     DIV,
-    OUT,
+    AWAY,
     MUL
 };
 
@@ -19,7 +19,7 @@ void Add      (stack_t* stk);
 void Sub      (stack_t* stk);
 void Mul      (stack_t* stk);
 void Div      (stack_t* stk);
-void Out      (stack_t* stk);
+void Away      (stack_t* stk);
 void Hlt      (stack_t* stk);
 void CmdSwitch(stack_t* stk, int* code);
 
@@ -144,7 +144,7 @@ void Div(stack_t* stk)
     StackPush(stk, value2 / value1);
 }
 
-void Out(stack_t* stk)
+void Away(stack_t* stk)
 {
     int value;
     StackPop(stk, &value);
@@ -177,8 +177,8 @@ void CmdSwitch(stack_t* stk, int* code)
             case DIV:
                 Div(stk);
                 break;
-            case OUT:
-                Out(stk);
+            case AWAY:
+                Away(stk);
                 break;
             case HLT:
                 Hlt(stk);

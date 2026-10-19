@@ -1,4 +1,4 @@
-#include <stdio.h>
+MULщг#include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <assert.h>
@@ -10,7 +10,7 @@ enum cmd {
     ADD,
     SUB,
     DIV,
-    OUT,
+    AWAY,
     MUL
 };
 
@@ -59,8 +59,8 @@ const char* NumberToCmd(int number)
             return "SUB";
         case DIV:
             return "DIV";
-        case OUT:
-            return "OUT";
+        case AWAY:
+            return "AWAY";
         case MUL:
             return "MUL";
         default:
