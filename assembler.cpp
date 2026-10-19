@@ -1,8 +1,10 @@
+#include "TXLib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <assert.h>
 #include <string.h>
+
 
 enum cmd {
     HLT,
@@ -10,34 +12,40 @@ enum cmd {
     ADD,
     SUB,
     DIV,
-    OUT,
+    AWAY,
     MUL
 };
 
-int    ReadFromFile  (const char* name,        char*** index_array, char** buffer);
-void   WriteInFile(const char* name, char** index_array, int lines_count);
-void   FillIndexArray(char***     index_array, char**  buffer,      size_t size);
-int    CountLines    (char**      buffer,      size_t  size);
-size_t GetSize       (const char* name);
-void   PrintPointerArr (char** arr, int leng);
-int    GetCmdNumber(char* cmd);
+int    ReadFromFile   (const char* name,        char*** index_array, char** buffer, int* lines_count);
+void   WriteInFile    (const char* name,        char**  index_array, int    lines_count);
+void   FillIndexArray (char**      index_array, char*   buffer,      size_t size);
+int    CountLines     (char*       buffer,      size_t  size);
+size_t GetSize        (const char* name);
+void   PrintPointerArr(char**      arr,         int leng);
+int    GetCmdNumber   (char*       cmd);
+
+const char source[] = "code.asm";
+const char dest[] = "code.txt";
 
 int main()
 {
     char* buffer = 0;
     char** index_array = 0;
-    const char source[] = "code.asm";
-    const char bite[] = "code.txt";
-    // printf("456789\n");
-    int lines_count = ReadFromFile(source, &index_array, &buffer);
-    printf("22\n");
-    if (lines_count == -1)
+
+    int lines_count = 0;
+    int error = ReadFromFile(source, &index_array, &buffer, &lines_count);
+    // fprintf(stderr, "Reading completed\n");
+    if (error != 0)
     {
-        printf("Error\n");
+        fprintf(stderr, "Error\n");
+        free(index_array);
+        free(buffer);
+        return 0;
     }
-    WriteInFile(bite, index_array, lines_count);
+    WriteInFile(dest, index_array, lines_count);
     free(index_array);
     free(buffer);
+    return 0;
 }
 
 
@@ -53,47 +61,48 @@ int GetCmdNumber(char* cmd)
         return SUB;
     if (strcmp(cmd, "DIV") == 0)
         return DIV;
-    if (strcmp(cmd, "OUT") == 0)
-        return OUT;
+    if (strcmp(cmd, "AWAY") == 0)
+        return AWAY;
     if (strcmp(cmd, "MUL") == 0)
         return MUL;
     else
         return 0;
 }
 
-int ReadFromFile(const char* name, char*** index_array, char** buffer)
+int ReadFromFile(const char* name, char*** index_array, char** buffer, int* lines_count)
 {
     // запись размера файла
     size_t size = GetSize(name);
     // открытие файла
-    FILE* file = fopen(name, "r");
+    FILE* file = fopen(name, "rb");
     if (file == 0)
     {
-        printf("Error: calloc returned 0 in file: %d in line %d", __FILE__, __LINE__);
+        printf("Error: calloc returned 0 in file: %s in line %d", __FILE__, __LINE__);
         return -1;
     }
-    // создание буфера и массива с указателями
+    // создание буфера
     *buffer = (char*)calloc(size + 1, sizeof(char));
     if (*buffer == 0)
     {
-        printf("Error: calloc returned 0 in file: %d in line %d", __FILE__, __LINE__);
+        printf("Error: calloc returned 0 in file: %s in line %d", __FILE__, __LINE__);
         return -1;
     }
     // заполнение буфера
     fread(*buffer, sizeof(char), size, file);
     // подсчет строк в файле
-    int lines_count = CountLines(buffer, size);
-    *index_array = (char**)calloc(lines_count + 1, sizeof(char*));
+    *lines_count = CountLines(*buffer, size);
+    // создание массива с указателями
+    *index_array = (char**)calloc(*lines_count + 1, sizeof(char*));
     if (*index_array == 0)
     {
-        printf("Error: calloc returned 0 in file: %d in line %d", __FILE__, __LINE__);
+        printf("Error: calloc returned 0 in file: %s in line %d", __FILE__, __LINE__);
         return -1;
     }
     // заполнение массива с указателями
-    FillIndexArray(index_array, buffer, size);
+    FillIndexArray(*index_array, *buffer, size);
     // закрытие файла
     fclose(file);
-    return lines_count;
+    return 0;
 }
 
 size_t GetSize(const char* name)
@@ -107,35 +116,37 @@ size_t GetSize(const char* name)
     return st.st_size;
 }
 
-int CountLines(char** buffer, size_t size)
+int CountLines(char* buffer, size_t size)
 {
     char sym = 0;
     int line_count = 0;
-    for (long long buf_idx = 0; buf_idx < size; buf_idx++)
+    for (int buf_idx = 0; buf_idx < (int)size; buf_idx++)
     {
-        sym = *(*buffer + buf_idx);
-        assert(sym != '\r');
+        sym = *(buffer + buf_idx);
+        if (sym == '\r')
+            *(buffer + buf_idx) = '\0';
+
         if (sym == '\n')
         {
             line_count++;
-            *(*buffer + buf_idx) = '\0';
+            *(buffer + buf_idx) = '\0';
         }
     }
     return line_count;
 }
 
-void FillIndexArray(char*** index_array, char** buffer, size_t size)
+void FillIndexArray(char** index_array, char* buffer, size_t size)
 {
     char sym = 0;
-    (*index_array)[0] = *buffer;
+    index_array[0] = buffer;
     int line_idx = 1;
-    for (long long buf_idx = 1; buf_idx < size; buf_idx++)
+    for (int buf_idx = 1; buf_idx < (int)size; buf_idx++)
     {
-        sym = *(*buffer + buf_idx);
+        sym = *(buffer + buf_idx);
 
-        if (sym == '\0')
+        if (sym == '\0' && *(buffer + buf_idx + 1) == '\0')
         {
-            (*index_array)[line_idx] = *buffer + buf_idx + 1;
+            index_array[line_idx] = buffer + buf_idx + 2;
             line_idx++;
         }
     }
