@@ -3,40 +3,42 @@
 #include <assert.h>
 #include <sys/stat.h>
 #include "stack.h"
+#include "enum.h"
 
-enum cmd {
-    HLT,
-    PUSH,
-    ADD,
-    SUB,
-    DIV,
-    AWAY,
-    MUL
+struct processor_t {
+    stack_t stk;
+    int code[1000];
+    int regs[4];
 };
 
-void Push     (stack_t* stk, int value);
-void Add      (stack_t* stk);
-void Sub      (stack_t* stk);
-void Mul      (stack_t* stk);
-void Div      (stack_t* stk);
-void Away      (stack_t* stk);
-void Hlt      (stack_t* stk);
-void CmdSwitch(stack_t* stk, int* code);
+void Push     (processor_t* vm, int value);
+void Add      (processor_t* vm);
+void Sub      (processor_t* vm);
+void Mul      (processor_t* vm);
+void Div      (processor_t* vm);
+void Away     (processor_t* vm);
+void Hlt      (processor_t* vm);
+void CmdSwitch(processor_t* vm);
+void Pop_reg(processor_t* vm, int reg_id);
+void Push_reg(processor_t* vm, int reg_id);
+
+
 
 void   ReadByteCode (const char* name,   int* code);
 int    CountLines   (char*       buffer, size_t size);
 size_t GetSize      (const char* name);
 void   FillCodeArray(int*        code,   char* buffer, int lines_count);
 
+
+const char code_file[] = "code.txt";
+
 int main()
 {
-    stack_t stk = {};
-    StackInit(&stk, 8);
-    int code[1000] = {};
-    const char byte[] = "code.txt";
-    ReadByteCode(byte, code);
+    processor_t vm = {};
+    StackInit(&(vm.stk), 8);
+    ReadByteCode(code_file, vm.code);
 
-    CmdSwitch(&stk, code);
+    CmdSwitch(&vm);
     return 0;
 }
 
@@ -83,7 +85,7 @@ int CountLines(char* buffer, size_t size)
 {
     char sym = 0;
     int line_count = 0;
-    for (int buf_idx = 0; buf_idx < size; buf_idx++)
+    for (int buf_idx = 0; buf_idx < (int)size; buf_idx++)
     {
         sym = *(buffer + buf_idx);
         assert(sym != '\r');
@@ -107,85 +109,103 @@ size_t GetSize(const char* name)
     return st.st_size;
 }
 
-void Push(stack_t* stk, int value)
+void Push(processor_t* vm, int value)
 {
-    StackPush(stk, value);
+    StackPush(&(vm->stk), value);
 }
 
-void Add(stack_t* stk)
-{
-    int value1, value2;
-    StackPop(stk, &value1);
-    StackPop(stk, &value2);
-    StackPush(stk, value1 + value2);
-}
-
-void Sub(stack_t* stk)
+void Add(processor_t* vm)
 {
     int value1, value2;
-    StackPop(stk, &value1);
-    StackPop(stk, &value2);
-    StackPush(stk, value2 - value1);
+    StackPop(&(vm->stk), &value1);
+    StackPop(&(vm->stk), &value2);
+    StackPush(&(vm->stk), value1 + value2);
 }
 
-void Mul(stack_t* stk)
+void Sub(processor_t* vm)
 {
     int value1, value2;
-    StackPop(stk, &value1);
-    StackPop(stk, &value2);
-    StackPush(stk, value1 * value2);
+    StackPop(&(vm->stk), &value1);
+    StackPop(&(vm->stk), &value2);
+    StackPush(&(vm->stk), value2 - value1);
 }
 
-void Div(stack_t* stk)
+void Mul(processor_t* vm)
 {
     int value1, value2;
-    StackPop(stk, &value1);
-    StackPop(stk, &value2);
-    StackPush(stk, value2 / value1);
+    StackPop(&(vm->stk), &value1);
+    StackPop(&(vm->stk), &value2);
+    StackPush(&(vm->stk), value1 * value2);
 }
 
-void Away(stack_t* stk)
+void Div(processor_t* vm)
+{
+    int value1, value2;
+    StackPop(&(vm->stk), &value1);
+    StackPop(&(vm->stk), &value2);
+    StackPush(&(vm->stk), value2 / value1);
+}
+
+void Away(processor_t* vm)
 {
     int value;
-    StackPop(stk, &value);
+    StackPop(&(vm->stk), &value);
     printf("%d", value);
 }
 
-void Hlt(stack_t* stk)
+void Hlt(processor_t* vm)
 {
-    StackDestroy(stk);
+    StackDestroy(&(vm->stk));
 }
 
-void CmdSwitch(stack_t* stk, int* code)
+void Pop_reg(processor_t* vm, int reg_id)
+{
+    StackPop(&(vm->stk), vm->regs + reg_id);
+}
+
+void Push_reg(processor_t* vm, int reg_id)
+{
+    StackPush(&(vm->stk), vm->regs[reg_id]);
+}
+
+void CmdSwitch(processor_t* vm)
 {
     int ip = 0;
     bool no_hlt = 1;
     while (no_hlt)
     {
-        switch(code[ip])
+        switch(vm->code[ip])
         {
             case PUSH:
                 ip++;
-                Push(stk, code[ip]);
+                Push(vm, vm->code[ip]);
+                break;
+            case POPr:
+                ip++;
+                Pop_reg(vm, vm->code[ip]);
+                break;
+            case PUSHr:
+                ip++;
+                Push_reg(vm, vm->code[ip]);
                 break;
             case ADD:
-                Add(stk);
+                Add(vm);
                 break;
             case SUB:
-                Sub(stk);
+                Sub(vm);
                 break;
             case DIV:
-                Div(stk);
+                Div(vm);
                 break;
             case AWAY:
-                Away(stk);
+                Away(vm);
                 break;
             case HLT:
-                Hlt(stk);
+                Hlt(vm);
                 no_hlt = 0;
                 break;
             case MUL:
-                Mul(stk);
+                Mul(vm);
                 break;
         }
         ip++;

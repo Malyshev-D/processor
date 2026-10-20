@@ -4,25 +4,17 @@
 #include <sys/stat.h>
 #include <assert.h>
 #include <string.h>
-
-
-enum cmd {
-    HLT,
-    PUSH,
-    ADD,
-    SUB,
-    DIV,
-    AWAY,
-    MUL
-};
+#include "enum.h"
 
 int    ReadFromFile   (const char* name,        char*** index_array, char** buffer, int* lines_count);
 void   WriteInFile    (const char* name,        char**  index_array, int    lines_count);
 void   FillIndexArray (char**      index_array, char*   buffer,      size_t size);
 int    CountLines     (char*       buffer,      size_t  size);
 size_t GetSize        (const char* name);
-void   PrintPointerArr(char**      arr,         int leng);
+void   PrintPointerArr(char**      arr,         int     leng);
 int    GetCmdNumber   (char*       cmd);
+void   TranslateArg   (FILE*       file,        char**  index_array, int    line,   int  index, int shift);
+void   StringToZero   (char*       arr,         int     leng);
 
 const char source[] = "code.asm";
 const char dest[] = "code.txt";
@@ -35,6 +27,7 @@ int main()
     int lines_count = 0;
     int error = ReadFromFile(source, &index_array, &buffer, &lines_count);
     // fprintf(stderr, "Reading completed\n");
+    // PrintPointerArr(index_array, lines_count);
     if (error != 0)
     {
         fprintf(stderr, "Error\n");
@@ -65,6 +58,18 @@ int GetCmdNumber(char* cmd)
         return AWAY;
     if (strcmp(cmd, "MUL") == 0)
         return MUL;
+    if (strcmp(cmd, "PUSHr") == 0)
+        return PUSHr;
+    if (strcmp(cmd, "POPr") == 0)
+        return POPr;
+    if (strcmp(cmd, "AX") == 0)
+        return AX;
+    if (strcmp(cmd, "BX") == 0)
+        return BX;
+    if (strcmp(cmd, "CX") == 0)
+        return CX;
+    if (strcmp(cmd, "DX") == 0)
+        return DX;
     else
         return 0;
 }
@@ -161,20 +166,60 @@ void PrintPointerArr (char** arr, int leng)
 void WriteInFile(const char* name, char** index_array, int lines_count)
 {
     FILE* file = fopen(name, "w");
-    char string[100] = {};
-    int number = 0;
-    int cmd_number = 0;
-    int correct_args = 0;
+    char cmd[20] = {};
+    int index = 0;
+    int shift = 0;
     for (int line = 0; line < lines_count; line++)
     {
-        correct_args = sscanf(index_array[line], "%s%d", string, &number);
-        cmd_number = GetCmdNumber(string);
-        fprintf(file, "%d", cmd_number);
-        if (correct_args == 2)
+        index = 0;
+        shift = 0;
+        StringToZero(cmd, 20);
+        while (index_array[line][index] != ' ' && index_array[line][index] != '\0')
         {
-            fprintf(file, " %d", number);
+            cmd[index] = index_array[line][index];
+            // printf("line <%d>, index <%d>, symbol <%c>, cmd <%s>\n", line, index, index_array[line][index], cmd);
+            shift++;
+            index++;
         }
+        fprintf(file, "%d", GetCmdNumber(cmd));
+        // printf("%c", word[i]);
+        // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
+        if (index_array[line][index] == ' ')
+            TranslateArg(file, index_array, line, index, shift);
         putc('\n', file);
+
     }
     fclose(file);
+}
+
+void TranslateArg(FILE* file, char** index_array, int line, int index, int shift)
+{
+    char arg[10] = {};
+    int is_number = 0;
+    int number = 0;
+    index++;
+    shift++;
+    // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
+    is_number = sscanf(index_array[line] + index, "%d", &number);
+    // printf("number <%d>\n", number);
+    if (is_number != 1)
+    {
+        while (index_array[line][index] != '\0')
+        {
+            arg[index - shift] = index_array[line][index];
+            index++;
+            // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
+        }
+        number = GetCmdNumber(arg);
+        // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
+    }
+    fprintf(file, " %d", number);
+}
+
+void StringToZero(char* arr, int leng)
+{
+    for (int i = 0; i < leng; i++)
+    {
+        arr[i] = 0;
+    }
 }

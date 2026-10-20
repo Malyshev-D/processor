@@ -204,7 +204,7 @@ void StackSimPrint(stack_t stk)
         {
             putchar('\n');
         }
-        printf("<%.4lg> ", stk.data[idx]);
+        printf("<%d> ", stk.data[idx]);
     }
     printf("\nsize: %d\ncapacity: %d\n\n",
     stk.size, stk.capacity);
