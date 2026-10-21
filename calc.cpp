@@ -150,7 +150,7 @@ void Away(processor_t* vm)
 {
     int value;
     StackPop(&(vm->stk), &value);
-    printf("%d", value);
+    printf("%d\n", value);
 }
 
 void Hlt(processor_t* vm)
@@ -160,12 +160,12 @@ void Hlt(processor_t* vm)
 
 void Pop_reg(processor_t* vm, int reg_id)
 {
-    StackPop(&(vm->stk), vm->regs + reg_id);
+    StackPop(&(vm->stk), vm->regs + reg_id - 1);
 }
 
 void Push_reg(processor_t* vm, int reg_id)
 {
-    StackPush(&(vm->stk), vm->regs[reg_id]);
+    StackPush(&(vm->stk), vm->regs[reg_id - 1]);
 }
 
 void CmdSwitch(processor_t* vm)
