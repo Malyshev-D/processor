@@ -6,15 +6,16 @@
 #include <string.h>
 #include "enum.h"
 
-int    ReadFromFile   (const char* name,        char*** index_array, char** buffer, int* lines_count);
-void   WriteInFile    (const char* name,        char**  index_array, int    lines_count);
+int    ReadFromFile   (const char* name,        char*** index_array, char** buffer,      int* lines_count);
+void   WriteInFile    (const char* name,        char**  index_array, int    lines_count, int* labels);
 void   FillIndexArray (char**      index_array, char*   buffer,      size_t size);
 int    CountLines     (char*       buffer,      size_t  size);
 size_t GetSize        (const char* name);
 void   PrintPointerArr(char**      arr,         int     leng);
 int    GetCmdNumber   (char*       cmd);
-void   TranslateArg   (FILE*       file,        char**  index_array, int    line,   int  index, int shift);
-void   StringToZero   (char*       arr,         int     leng);
+void   TranslateArg   (FILE*       file,        char**  index_array, int*   labels,      int line, int index, int shift);
+void   StringReset    (char*       arr,         int     leng);
+void   SetLabels      (int*        labels,      int     leng);
 
 const char source[] = "code.asm";
 const char dest[] = "code.txt";
@@ -23,11 +24,10 @@ int main()
 {
     char* buffer = 0;
     char** index_array = 0;
-
+    int labels[6] = {};
+    SetLabels(labels, 6);
     int lines_count = 0;
     int error = ReadFromFile(source, &index_array, &buffer, &lines_count);
-    // fprintf(stderr, "Reading completed\n");
-    // PrintPointerArr(index_array, lines_count);
     if (error != 0)
     {
         fprintf(stderr, "Error\n");
@@ -35,7 +35,9 @@ int main()
         free(buffer);
         return 0;
     }
-    WriteInFile(dest, index_array, lines_count);
+    WriteInFile(dest, index_array, lines_count, labels);
+    WriteInFile(dest, index_array, lines_count, labels);
+
     free(index_array);
     free(buffer);
     return 0;
@@ -62,6 +64,20 @@ int GetCmdNumber(char* cmd)
         return PUSHr;
     if (strcmp(cmd, "POPr") == 0)
         return POPr;
+    if (strcmp(cmd, "JMP") == 0)
+        return JMP;
+    if (strcmp(cmd, "JA") == 0)
+        return JA;
+    if (strcmp(cmd, "JAE") == 0)
+        return JAE;
+    if (strcmp(cmd, "JB") == 0)
+        return JB;
+    if (strcmp(cmd, "JBE") == 0)
+        return JBE;
+    if (strcmp(cmd, "JE") == 0)
+        return JE;
+    if (strcmp(cmd, "JNE") == 0)
+        return JNE;
     if (strcmp(cmd, "AX") == 0)
         return AX;
     if (strcmp(cmd, "BX") == 0)
@@ -163,63 +179,91 @@ void PrintPointerArr (char** arr, int leng)
         puts(arr[ind]);
 }
 
-void WriteInFile(const char* name, char** index_array, int lines_count)
+void WriteInFile(const char* name, char** index_array, int lines_count, int* labels)
 {
     FILE* file = fopen(name, "w");
     char cmd[20] = {};
     int index = 0;
     int shift = 0;
-    for (int line = 0; line < lines_count; line++)
+    int label_idx = -1;
+    int line = 0;
+    int args = 0;
+    while (line < lines_count)
     {
         index = 0;
         shift = 0;
-        StringToZero(cmd, 20);
-        while (index_array[line][index] != ' ' && index_array[line][index] != '\0')
+        StringReset(cmd, 20);
+        if (index_array[line][index] == ':')
         {
-            cmd[index] = index_array[line][index];
-            // printf("line <%d>, index <%d>, symbol <%c>, cmd <%s>\n", line, index, index_array[line][index], cmd);
-            shift++;
-            index++;
+            sscanf(index_array[line] + 1, "%d", &label_idx);
+            if (labels[label_idx] == -1)
+            {
+                labels[label_idx] = line + args;
+            }
         }
-        fprintf(file, "%d", GetCmdNumber(cmd));
-        // printf("%c", word[i]);
-        // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
-        if (index_array[line][index] == ' ')
-            TranslateArg(file, index_array, line, index, shift);
-        putc('\n', file);
-
+        else
+        {
+            while (index_array[line][index] != ' ' && index_array[line][index] != '\0')
+            {
+                cmd[index] = index_array[line][index];
+                shift++;
+                index++;
+            }
+            fprintf(file, "%d", GetCmdNumber(cmd));
+            // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
+            if (index_array[line][index] == ' ')
+            {
+                TranslateArg(file, index_array, labels, line, index, shift);
+                args++;
+            }
+            putc('\n', file);
+        }
+        line++;
     }
     fclose(file);
 }
 
-void TranslateArg(FILE* file, char** index_array, int line, int index, int shift)
+void TranslateArg(FILE* file, char** index_array, int* labels, int line, int index, int shift)
 {
-    char arg[10] = {};
+    char argument[10] = {};
     int is_number = 0;
     int number = 0;
+    int label_idx = -1;
     index++;
     shift++;
-    // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
-    is_number = sscanf(index_array[line] + index, "%d", &number);
-    // printf("number <%d>\n", number);
-    if (is_number != 1)
+    if (index_array[line][index] == ':')
     {
-        while (index_array[line][index] != '\0')
+        sscanf(index_array[line] + index + 1, "%d", &label_idx);
+        number = labels[label_idx];
+    }
+    else
+    {
+        is_number = sscanf(index_array[line] + index, "%d", &number);
+        if (is_number != 1)
         {
-            arg[index - shift] = index_array[line][index];
-            index++;
-            // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
+            while (index_array[line][index] != '\0')
+            {
+                argument[index - shift] = index_array[line][index];
+                index++;
+            }
+            number = GetCmdNumber(argument);
         }
-        number = GetCmdNumber(arg);
-        // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
     }
     fprintf(file, " %d", number);
 }
 
-void StringToZero(char* arr, int leng)
+void StringReset(char* arr, int leng)
 {
     for (int i = 0; i < leng; i++)
     {
         arr[i] = 0;
+    }
+}
+
+void SetLabels(int* labels, int leng)
+{
+    for (int id = 0; id < leng; id++)
+    {
+        labels[id] = -1;
     }
 }

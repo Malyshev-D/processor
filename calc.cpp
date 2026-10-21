@@ -9,26 +9,31 @@ struct processor_t {
     stack_t stk;
     int code[1000];
     int regs[4];
+    int ip;
 };
 
-void Push     (processor_t* vm, int value);
-void Add      (processor_t* vm);
-void Sub      (processor_t* vm);
-void Mul      (processor_t* vm);
-void Div      (processor_t* vm);
-void Away     (processor_t* vm);
-void Hlt      (processor_t* vm);
-void CmdSwitch(processor_t* vm);
-void Pop_reg(processor_t* vm, int reg_id);
-void Push_reg(processor_t* vm, int reg_id);
+void Push            (processor_t* vm, int value);
+void Add             (processor_t* vm);
+void Sub             (processor_t* vm);
+void Mul             (processor_t* vm);
+void Div             (processor_t* vm);
+void Away            (processor_t* vm);
+void Hlt             (processor_t* vm);
+void Pop_reg         (processor_t* vm, int reg_id);
+void Push_reg        (processor_t* vm, int reg_id);
+void Jump            (processor_t* vm, int label_idx);
+void JumpIfAbove     (processor_t* vm, int label_idx);
+void JumpIfAboveEqual(processor_t* vm, int label_idx);
+void JumpIfBelow     (processor_t* vm, int label_idx);
+void JumpIfBelowEqual(processor_t* vm, int label_idx);
+void JumpIfEqual     (processor_t* vm, int label_idx);
+void JumpIfNotEqual  (processor_t* vm, int label_idx);
 
-
-
-void   ReadByteCode (const char* name,   int* code);
-int    CountLines   (char*       buffer, size_t size);
-size_t GetSize      (const char* name);
-void   FillCodeArray(int*        code,   char* buffer, int lines_count);
-
+void CmdSwitch       (processor_t* vm);
+void   ReadByteCode  (const char*  name,   int*  code);
+int    CountLines    (char*        buffer, size_t size);
+size_t GetSize       (const char*  name);
+void   FillCodeArray (int*         code,   char*  buffer, int lines_count);
 
 const char code_file[] = "code.txt";
 
@@ -39,6 +44,7 @@ int main()
     ReadByteCode(code_file, vm.code);
 
     CmdSwitch(&vm);
+
     return 0;
 }
 
@@ -168,25 +174,117 @@ void Push_reg(processor_t* vm, int reg_id)
     StackPush(&(vm->stk), vm->regs[reg_id - 1]);
 }
 
+void Jump(processor_t* vm, int label_idx)
+{
+    vm->ip = label_idx - 1;
+}
+
+void JumpIfAbove(processor_t* vm, int label_idx)
+{
+    int a, b;
+    StackPop(&(vm->stk), &a);
+    StackPop(&(vm->stk), &b);
+    if (a > b)
+        Jump(vm, label_idx);
+
+}
+
+void JumpIfAboveEqual(processor_t* vm, int label_idx)
+{
+    int a, b;
+    StackPop(&(vm->stk), &a);
+    StackPop(&(vm->stk), &b);
+    if (a >= b)
+        Jump(vm, label_idx);
+
+}
+
+void JumpIfBelow(processor_t* vm, int label_idx)
+{
+    int a, b;
+    StackPop(&(vm->stk), &a);
+    StackPop(&(vm->stk), &b);
+    if (a < b)
+        Jump(vm, label_idx);
+
+}
+
+void JumpIfBelowEqual(processor_t* vm, int label_idx)
+{
+    int a, b;
+    StackPop(&(vm->stk), &a);
+    StackPop(&(vm->stk), &b);
+    if (a <= b)
+        Jump(vm, label_idx);
+
+}
+
+void JumpIfEqual(processor_t* vm, int label_idx)
+{
+    int a, b;
+    StackPop(&(vm->stk), &a);
+    StackPop(&(vm->stk), &b);
+    if (a == b)
+        Jump(vm, label_idx);
+
+}
+
+void JumpIfNotEqual(processor_t* vm, int label_idx)
+{
+    int a, b;
+    StackPop(&(vm->stk), &a);
+    StackPop(&(vm->stk), &b);
+    if (a != b)
+        Jump(vm, label_idx);
+
+}
+
 void CmdSwitch(processor_t* vm)
 {
-    int ip = 0;
     bool no_hlt = 1;
     while (no_hlt)
     {
-        switch(vm->code[ip])
+        switch(vm->code[vm->ip])
         {
             case PUSH:
-                ip++;
-                Push(vm, vm->code[ip]);
+                vm->ip++;
+                Push(vm, vm->code[vm->ip]);
                 break;
             case POPr:
-                ip++;
-                Pop_reg(vm, vm->code[ip]);
+                vm->ip++;
+                Pop_reg(vm, vm->code[vm->ip]);
                 break;
             case PUSHr:
-                ip++;
-                Push_reg(vm, vm->code[ip]);
+                vm->ip++;
+                Push_reg(vm, vm->code[vm->ip]);
+                break;
+            case JMP:
+                vm->ip++;
+                Jump(vm, vm->code[vm->ip]);
+                break;
+            case JA:
+                vm->ip++;
+                JumpIfAbove(vm, vm->code[vm->ip]);
+                break;
+            case JAE:
+                vm->ip++;
+                JumpIfAboveEqual(vm, vm->code[vm->ip]);
+                break;
+            case JB:
+                vm->ip++;
+                JumpIfBelow(vm, vm->code[vm->ip]);
+                break;
+            case JBE:
+                vm->ip++;
+                JumpIfBelowEqual(vm, vm->code[vm->ip]);
+                break;
+            case JE:
+                vm->ip++;
+                JumpIfEqual(vm, vm->code[vm->ip]);
+                break;
+            case JNE:
+                vm->ip++;
+                JumpIfNotEqual(vm, vm->code[vm->ip]);
                 break;
             case ADD:
                 Add(vm);
@@ -208,6 +306,6 @@ void CmdSwitch(processor_t* vm)
                 Mul(vm);
                 break;
         }
-        ip++;
+        vm->ip++;
     }
 }
