@@ -1,0 +1,103 @@
+#include "TXLib.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <assert.h>
+#include <string.h>
+
+#include "../enum.h"
+#include "reading.h"
+
+int ReadFromFile(const char* name, char*** index_array, char** buffer, int* lines_count) // getsize countlines FillIndexArray
+{
+    // запись размера файла
+    size_t size = GetSize(name);
+    // printf("%zu\n", size);
+    FILE* file = fopen(name, "rb");
+    if (file == 0)
+    {
+        printf("Error: calloc returned 0 in file: %s in line %d", __FILE__, __LINE__);
+        return -1;
+    }
+    // создание и заполнение буфера
+    *buffer = (char*)calloc(size + 1, sizeof(char));
+    if (*buffer == 0)
+    {
+        printf("Error: calloc returned 0 in file: %s in line %d", __FILE__, __LINE__);
+        return -1;
+    }
+    fread(*buffer, sizeof(char), size, file);
+    // создание и заполнение массива с указателями
+    *lines_count = CountLines(*buffer, size);
+    *index_array = (char**)calloc(*lines_count + 1, sizeof(char*));
+    if (*index_array == 0)
+    {
+        printf("Error: calloc returned 0 in file: %s in line %d", __FILE__, __LINE__);
+        return -1;
+    }
+    FillIndexArray(*index_array, *buffer, size);
+
+    fclose(file);
+    return 0;
+}
+
+size_t GetSize(const char* name)
+{
+    struct stat st;
+    if (stat(name, &st) != 0)
+    {
+        fprintf(stderr, "ERROR");
+        return -1;
+    }
+    return st.st_size;
+}
+
+int CountLines(char* buffer, size_t size)
+{
+    char sym = 0;
+    int line_count = 0;
+    for (int buf_idx = 0; buf_idx < (int)size; buf_idx++)
+    {
+        sym = *(buffer + buf_idx);
+        if (sym == '\r')
+            *(buffer + buf_idx) = '\0';
+
+        if (sym == '\n')
+        {
+            line_count++;
+            *(buffer + buf_idx) = '\0';
+        }
+    }
+    return line_count;
+}
+
+void FillIndexArray(char** index_array, char* buffer, size_t size)
+{
+    char sym = 0;
+    index_array[0] = buffer;
+    int line_idx = 1;
+    for (int buf_idx = 1; buf_idx < (int)size; buf_idx++)
+    {
+        sym = *(buffer + buf_idx);
+
+        if (sym == '\0' && *(buffer + buf_idx + 1) == '\0')
+        {
+            index_array[line_idx] = buffer + buf_idx + 2;
+            line_idx++;
+        }
+    }
+}
+
+void PrintPointerArr (char** arr, int leng)
+{
+    for (int ind = 0; ind < leng; ind++)
+        puts(arr[ind]);
+}
+
+void SetLabels(int* labels, int leng)
+{
+    for (int id = 0; id < leng; id++)
+    {
+        labels[id] = -1;
+    }
+}
