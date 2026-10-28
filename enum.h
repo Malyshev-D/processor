@@ -23,7 +23,7 @@ enum cmd {
     DUMP,
     SCAN,
     SQRT,
-    AX = 1,
+    AX = 0,
     BX,
     CX,
     DX
@@ -43,7 +43,7 @@ struct commands_str {
     int         arg_number;)
 };
 
-const int CMD_AMOUNT = 20;
+const int CMD_AMOUNT = 21;
 const int REG_AMOUNT = 4;
 
 #ifdef CMDARRAY// TODO: universal function
@@ -67,7 +67,7 @@ commands_str cmd_array[] = {
 {CALL,  "CALL"  VM_FUNCTIONS(, Call,             1)},
 {RET,   "RET"   VM_FUNCTIONS(, Ret,              0)},
 {DUMP,  "DUMP"  VM_FUNCTIONS(, Dump,             0)},
-{SCAN,    "SCAN"    VM_FUNCTIONS(, Input,               0)},
+{SCAN,  "SCAN"  VM_FUNCTIONS(, Scan,            0)},
 {SQRT,  "SQRT"  VM_FUNCTIONS(, Sqrt,             0)}
 };
 #endif

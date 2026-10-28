@@ -7,6 +7,7 @@
 
 #include "reading.h"
 
+// чтение файла и заполнение массива с указателями на строки
 int ReadFromFile(const char* name, char*** index_array, char** buffer, int* lines_count) // getsize countlines FillIndexArray
 {
     // запись размера файла
@@ -40,6 +41,7 @@ int ReadFromFile(const char* name, char*** index_array, char** buffer, int* line
     return 0;
 }
 
+// получение размера файла
 size_t GetSize(const char* name)
 {
     struct stat st;
@@ -51,6 +53,7 @@ size_t GetSize(const char* name)
     return st.st_size;
 }
 
+// подсчет строк
 int CountLines(char* buffer, size_t size)
 {
     char sym = 0;
@@ -70,6 +73,7 @@ int CountLines(char* buffer, size_t size)
     return line_count;
 }
 
+// заполнение массива с указателями на строки
 void FillIndexArray(char** index_array, char* buffer, size_t size)
 {
     char sym = 0; // текущий символ
@@ -86,12 +90,14 @@ void FillIndexArray(char** index_array, char* buffer, size_t size)
     }
 }
 
+// побочная функция для печати эл-тов массива
 void PrintPointerArr (char** arr, int leng)
 {
     for (int ind = 0; ind < leng; ind++)
         puts(arr[ind]);
 }
 
+// устанавливаем значения меток
 void SetLabels(int* labels, int leng)
 {
     for (int id = 0; id < leng; id++)

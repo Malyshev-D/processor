@@ -12,7 +12,7 @@
 #include "../enum.h"
 #include "readswitch.h" // readswitch.cpp
 
-const char code_file[] = "../code.txt";
+const char code_file[] = "../square.txt";
 
 int main()
 {
@@ -22,6 +22,9 @@ int main()
     ReadByteCode(code_file, &vm);
 
     CmdSwitch(&vm, cmd_array);
-
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     printf("%d ", vm.regs[i]);
+    // }
     return 0;
 }

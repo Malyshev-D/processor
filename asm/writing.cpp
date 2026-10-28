@@ -12,13 +12,14 @@
 #include "writing.h"
 
 
-
+// двойной проход, запись байт-кода в файл
 void WriteInFile(const char* name, char** index_array, int lines_count, int* labels)
 {
     FillLabels(name, index_array, lines_count, labels);
     FillLabels(name, index_array, lines_count, labels);
 }
 
+// запись байт-кода в файл + метки
 void FillLabels(const char* name, char** index_array, int lines_count, int* labels)
 {
     FILE* file = fopen(name, "w");
@@ -28,6 +29,7 @@ void FillLabels(const char* name, char** index_array, int lines_count, int* labe
     char cmd[20] = {}; // строка для копирования из буфера
     int shift = 0; // сдвиг = индекс аргумента - 1
     int label_idx = -1; // индекс метки
+    int labels_used = 0; // в байт-коде метка не считается за строку => вычитаем
     int args = 0; // суммарное количество аргументов
     for (int line = 0; line < lines_count; line++)
     {
@@ -37,7 +39,10 @@ void FillLabels(const char* name, char** index_array, int lines_count, int* labe
         {
             sscanf(index_array[line] + 1, "%d", &label_idx);
             if (labels[label_idx] == -1) // если метка пуста - заполняем
-                labels[label_idx] = line + args;
+            {
+                labels[label_idx] = line - labels_used + args;
+                labels_used++;
+            }
         }
         else
         {   // если обычная команда
@@ -55,6 +60,7 @@ void FillLabels(const char* name, char** index_array, int lines_count, int* labe
     fclose(file);
 }
 
+// переводим команду
 int TranslateCmd(char* string, char* cmd)
 {
     int index = 0;
@@ -66,6 +72,7 @@ int TranslateCmd(char* string, char* cmd)
     return index;
 }
 
+// переводим аргумент
 int TranslateArg(char* word, int* labels, int shift)
 {
     char argument[10] = {};
@@ -93,6 +100,8 @@ int TranslateArg(char* word, int* labels, int shift)
     }
     return number;
 }
+
+// получаем номер команды
 int GetCmdNumber(char* cmd)
 {
     int index = 0;
@@ -104,6 +113,7 @@ int GetCmdNumber(char* cmd)
     return 0;
 }
 
+// получаем номер регистра
 int GetRegister(char* cmd)
 {
     for (int index = 0; index < REG_AMOUNT; index++)
@@ -114,6 +124,7 @@ int GetRegister(char* cmd)
     return -1;
 }
 
+// обнуляем строку
 void StringReset(char* arr, int leng)
 {
     for (int i = 0; i < leng; i++)

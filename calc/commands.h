@@ -20,7 +20,7 @@ void JumpIfNotEqual  (processor_t* vm);
 void Call            (processor_t* vm);
 void Ret             (processor_t* vm);
 void Dump            (processor_t* vm);
-void Scan              (processor_t* vm);
+void Scan            (processor_t* vm);
 void Sqrt            (processor_t* vm);
 
 #endif

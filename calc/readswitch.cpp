@@ -10,13 +10,15 @@
 #include "../enum.h"
 #include "readswitch.h"
 
-void ReadByteCode(const char* name, processor_t* vm) // getsize countlines fillcodearray
+// чтение байт-кода и запись в массив
+void ReadByteCode(const char* name, processor_t* vm)
 {
+    // открываем файл, создаем буфер
     size_t size = GetSize(name);
     FILE* file = fopen(name, "r");
     char* buffer = (char*)calloc(size + 1, sizeof(char));
     fread(buffer, sizeof(char), size, file);
-
+    // заполняем массив с кодом
     int lines_count = CountLines(buffer, size);
     FillCodeArray(vm, buffer, lines_count);
 
@@ -24,23 +26,25 @@ void ReadByteCode(const char* name, processor_t* vm) // getsize countlines fillc
     free(buffer);
 }
 
+// заполнение массива с кодом
 void FillCodeArray(processor_t* vm, char* buffer, int lines_count)
 {
-    int cmd_id = 0; //
-    int number = 0;
+    int cmd_id = 0;
+    int arg_value = 0;
     int buf_shift = 0;
     int correct_args = 0;
     int current_line = 0;
-    int args = 0;
+    int args_amount = 0;
     while (current_line < lines_count)
     {
-        correct_args = sscanf(buffer + buf_shift, "%d%d", &cmd_id, &number);
-        (vm->code)[current_line + args] = cmd_id;
+        // подсчет кол-ва чисел в строке
+        correct_args = sscanf(buffer + buf_shift, "%d%d", &cmd_id, &arg_value);
+        (vm->code)[current_line + args_amount] = cmd_id;
 
         if (correct_args == 2)
         {
-            args++;
-            (vm->code)[current_line + args] = number;
+            args_amount++;
+            (vm->code)[current_line + args_amount] = arg_value;
         }
         while (*(buffer + buf_shift) != '\0')
             buf_shift++;
@@ -48,9 +52,10 @@ void FillCodeArray(processor_t* vm, char* buffer, int lines_count)
         buf_shift++;
         current_line++;
     }
-    vm->last_idx = current_line + args;
+    vm->last_idx = current_line + args_amount;
 }
 
+// подсчет строк и замена \r\n на \0\0
 int CountLines(char* buffer, size_t size)
 {
     char sym = 0;
@@ -68,6 +73,7 @@ int CountLines(char* buffer, size_t size)
     return line_count;
 }
 
+// получение размера читаемого файла
 size_t GetSize(const char* name)
 {
     struct stat st;
@@ -79,7 +85,8 @@ size_t GetSize(const char* name)
     return st.st_size;
 }
 
-void CmdSwitch(processor_t* vm, commands_str* cmd_array) //TODO: struct.h
+// чтение массива с кодом и выполнение команд
+void CmdSwitch(processor_t* vm, commands_str* cmd_array) //DONE TODO: struct.h
 {
     int index = 0;
     while(vm->code[vm->ip] != HLT) // идем по массиву с кодом
@@ -95,6 +102,10 @@ void CmdSwitch(processor_t* vm, commands_str* cmd_array) //TODO: struct.h
                 break;
             }
         }
+        // StackDump(vm->stk);
+
         vm->ip++;
+        // printf("ip = [%d], cmd = [%d]\n", vm->ip, vm->code[vm->ip]);
+
     }
 }

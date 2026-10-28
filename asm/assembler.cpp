@@ -9,8 +9,8 @@
 #include "writing.h"
 
 const int  LABELS_RANGE = 15;
-const char source[] = "../code.asm";
-const char dest[] = "../code.txt";
+const char source[] = "../square.asm";
+const char dest[] = "../square.txt";
 
 int main()
 {
