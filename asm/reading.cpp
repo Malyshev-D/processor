@@ -1,11 +1,10 @@
-#include "TXLib.h"
+// #include "TXLib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <assert.h>
 #include <string.h>
 
-#include "../enum.h"
 #include "reading.h"
 
 int ReadFromFile(const char* name, char*** index_array, char** buffer, int* lines_count) // getsize countlines FillIndexArray
@@ -59,9 +58,9 @@ int CountLines(char* buffer, size_t size)
     for (int buf_idx = 0; buf_idx < (int)size; buf_idx++)
     {
         sym = *(buffer + buf_idx);
+        // assert(sym != '\r');
         if (sym == '\r')
             *(buffer + buf_idx) = '\0';
-
         if (sym == '\n')
         {
             line_count++;
@@ -73,13 +72,12 @@ int CountLines(char* buffer, size_t size)
 
 void FillIndexArray(char** index_array, char* buffer, size_t size)
 {
-    char sym = 0;
-    index_array[0] = buffer;
+    char sym = 0; // текущий символ
+    index_array[0] = buffer; // индекс первой строки
     int line_idx = 1;
-    for (int buf_idx = 1; buf_idx < (int)size; buf_idx++)
+    for (int buf_idx = 1; buf_idx < (int)size - 2; buf_idx++)
     {
         sym = *(buffer + buf_idx);
-
         if (sym == '\0' && *(buffer + buf_idx + 1) == '\0')
         {
             index_array[line_idx] = buffer + buf_idx + 2;

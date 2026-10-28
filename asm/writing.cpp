@@ -1,4 +1,4 @@
-#include "TXLib.h"
+// #include "TXLib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -11,23 +11,7 @@
 #include "../enum.h"
 #include "writing.h"
 
-int GetCmdNumber(char* cmd)
-{
-    int index = 0;
-    for (index = 0; index < CMD_AMOUNT; index++)
-    {
 
-        if (strcmp(cmd_array[index].word, cmd) == 0)
-            return cmd_array[index].id;
-    }
-    for (index = 0; index < REG_AMOUNT; index++)
-    {
-        if (strcmp(reg_array[index].word, cmd) == 0)
-            return reg_array[index].id;
-    }
-
-    return 0;
-}
 
 void WriteInFile(const char* name, char** index_array, int lines_count, int* labels)
 {
@@ -38,26 +22,28 @@ void WriteInFile(const char* name, char** index_array, int lines_count, int* lab
 void FillLabels(const char* name, char** index_array, int lines_count, int* labels)
 {
     FILE* file = fopen(name, "w");
-
-    char cmd[20] = {};
-    int shift = 0;
-    int label_idx = -1;
-    int args = 0;
+    assert(name != 0);
+    assert (index_array != 0);
+    assert(labels != 0);
+    char cmd[20] = {}; // строка для копирования из буфера
+    int shift = 0; // сдвиг = индекс аргумента - 1
+    int label_idx = -1; // индекс метки
+    int args = 0; // суммарное количество аргументов
     for (int line = 0; line < lines_count; line++)
     {
         shift = 0;
-        StringReset(cmd, 20);
+        StringReset(cmd, 20); // обнуление массива со строкой
         if (index_array[line][shift] == ':') // проверка на метку
         {
             sscanf(index_array[line] + 1, "%d", &label_idx);
-            if (labels[label_idx] == -1)
+            if (labels[label_idx] == -1) // если метка пуста - заполняем
                 labels[label_idx] = line + args;
         }
         else
         {   // если обычная команда
             shift = TranslateCmd(index_array[line], cmd);
             fprintf(file, "%d", GetCmdNumber(cmd));
-            // printf("line <%d>, index <%d>, symbol <%c>\n", line, index, index_array[line][index]);
+            // printf("line <%d> symbol <%c>\n", line, index_array[line][index]);
             if (index_array[line][shift] == ' ')
             {
                 fprintf(file, " %d", TranslateArg(index_array[line], labels, shift + 1));
@@ -102,10 +88,30 @@ int TranslateArg(char* word, int* labels, int shift)
                 argument[index - shift] = word[index];
                 index++;
             }
-            number = GetCmdNumber(argument);
+            number = GetRegister(argument);
         }
     }
     return number;
+}
+int GetCmdNumber(char* cmd)
+{
+    int index = 0;
+    for (index = 0; index < CMD_AMOUNT; index++)
+    {
+        if (strcmp(cmd_array[index].word, cmd) == 0)
+            return cmd_array[index].id;
+    }
+    return 0;
+}
+
+int GetRegister(char* cmd)
+{
+    for (int index = 0; index < REG_AMOUNT; index++)
+    {
+        if (strcmp(reg_array[index].word, cmd) == 0)
+            return reg_array[index].id;
+    }
+    return -1;
 }
 
 void StringReset(char* arr, int leng)

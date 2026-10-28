@@ -1,4 +1,4 @@
-#include "TXLib.h"
+// #include "TXLib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -33,5 +33,3 @@ int main()
     free(buffer);
     return 0;
 }
-
-
